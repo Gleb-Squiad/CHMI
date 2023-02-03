@@ -40,7 +40,11 @@ class App extends StatelessWidget {
                               ),
                               borderRadius: BorderRadius.circular(30),
                             ),
-                            child: Container(),
+                            child: const Center(
+                              child: Image(
+                                image: AssetImage('assets/images/screen.png'),
+                              ),
+                            ),
                           ),
                         ),
                         Flexible(
@@ -55,6 +59,9 @@ class App extends StatelessWidget {
                                   style: TextStyle(
                                     fontSize: 23,
                                   ),
+                                ),
+                                SizedBox(
+                                  width: 5,
                                 ),
                                 Icon(Icons.edit),
                               ],
