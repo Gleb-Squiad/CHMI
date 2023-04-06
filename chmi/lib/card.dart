@@ -64,88 +64,89 @@ class _SensorsCardState extends State<SensorsCard> {
                   ],
                 ),
                 isOpen
-                    ? Column(
-                        children: [
-                          const SizedBox(
-                            height: 10,
-                          ),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Row(
-                                children: [
-                                  widget.errors[0] == true
-                                      ? const Icon(
-                                          Icons.error_outline,
-                                          size: 20,
-                                          color: Colors.red,
-                                        )
-                                      : Container(),
-                                  const Text('Датчик №1')
-                                ],
+                    ? Column(children: [
+                        const SizedBox(
+                          height: 10,
+                        ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              children: [
+                                widget.errors[0] == true
+                                    ? const Icon(
+                                        Icons.error_outline,
+                                        size: 20,
+                                        color: Colors.red,
+                                      )
+                                    : Container(),
+                                const Text('Датчик №1')
+                              ],
+                            ),
+                            Container(
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFf2f2f2),
+                                borderRadius: BorderRadius.circular(25),
                               ),
-                              Container(
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFf2f2f2),
-                                  borderRadius: BorderRadius.circular(25),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 15,
                                 ),
                                 child: Padding(
                                   padding: const EdgeInsets.symmetric(
-                                    horizontal: 15,
+                                    vertical: 3,
                                   ),
-                                  child: Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 3,
-                                    ),
-                                    child: Text(
-                                      widget.values[0],
-                                    ),
+                                  child: Text(
+                                    widget.values[0],
                                   ),
                                 ),
-                              )
-                            ],
-                          ),
-                          const SizedBox(
-                            height: 15,
-                          ),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Row(
-                                children: [
-                                  widget.errors[1] == true
-                                      ? const Icon(
-                                          Icons.error_outline,
-                                          size: 20,
-                                          color: Colors.red,
-                                        )
-                                      : Container(),
-                                  const Text('Датчик №2')
-                                ],
                               ),
-                              Container(
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFf2f2f2),
-                                  borderRadius: BorderRadius.circular(25),
-                                ),
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 15,
+                            )
+                          ],
+                        ),
+                        const SizedBox(
+                          height: 15,
+                        ),
+                        widget.name != 'Уровень воды'
+                            ? Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Row(
+                                    children: [
+                                      widget.errors[1] == true
+                                          ? const Icon(
+                                              Icons.error_outline,
+                                              size: 20,
+                                              color: Colors.red,
+                                            )
+                                          : Container(),
+                                      const Text('Датчик №2')
+                                    ],
                                   ),
-                                  child: Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 3,
+                                  Container(
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFf2f2f2),
+                                      borderRadius: BorderRadius.circular(25),
                                     ),
-                                    child: Text(
-                                      widget.values[1],
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 15,
+                                      ),
+                                      child: Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: 3,
+                                        ),
+                                        child: Text(
+                                          widget.values[1],
+                                        ),
+                                      ),
                                     ),
-                                  ),
-                                ),
+                                  )
+                                ],
                               )
-                            ],
-                          )
-                        ],
-                      )
+                            : Row()
+                      ])
                     : Container()
               ],
             ),
