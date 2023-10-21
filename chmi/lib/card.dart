@@ -5,13 +5,14 @@ class SensorsCard extends StatefulWidget {
   final String avgValue;
   final List<String> values;
   final List<bool> errors;
+  final bool isRed;
 
   const SensorsCard(
       {required super.key,
       required this.name,
       required this.avgValue,
       required this.values,
-      required this.errors});
+      required this.errors, required this.isRed});
 
   @override
   State<SensorsCard> createState() => _SensorsCardState();
@@ -40,7 +41,7 @@ class _SensorsCardState extends State<SensorsCard> {
                       children: [
                         Text(
                           widget.name,
-                          style: const TextStyle(),
+                          style: TextStyle(color: widget.isRed ? Colors.red : Colors.black),
                         ),
                         const SizedBox(
                           height: 5,

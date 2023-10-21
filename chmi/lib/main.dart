@@ -1,8 +1,10 @@
+import 'dart:async';
 import 'dart:developer';
 
 import 'package:chmi/card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:socket_io_client/socket_io_client.dart';
 
 void main() {
@@ -18,57 +20,108 @@ class App extends StatefulWidget {
 
 class _AppState extends State<App> {
   late Socket socket;
-  late List humidityAir;
-  late List temperature;
-  late List humiditySoil;
-  late List servos;
-  late List hudSensors;
-  late List waterLevel;
-  final url = Uri.parse('https://hmiapi.vercel.app/');
+  late int tempLimit = 30;
+  late int humAirLimit = 50;
+  late int humSoilLimit = 0;
+  late List humidityAir = [0, 0];
+  late List temperature = [0, 0];
+  late List humiditySoil = [0, 0];
+  late List<bool> groundErrors = [false, false];
+  late List<bool> tempErrors = [false, false];
+  late List<bool> airErrors = [false, false];
+  late List<bool> servos = [false, false];
+  late List<bool> hudSensors = [true, true];
+  late List<bool> waterLevel = [true, true];
+  Timer scheduleTimeout([int milliseconds = 10000]) =>
+      Timer(Duration(milliseconds: milliseconds), handleTimeout);
+
+  void handleTimeout() {
+    connect();
+  }
+
   void connect() {
     try {
-      socket = io(url, <String, dynamic>{
-        'transports': ['websocket'],
-        'autoConnect': false,
+      socket = io(
+          'http://1122853-ithink.tw1.ru:4000?type=User',
+          OptionBuilder().setTransports(['websocket']).setExtraHeaders(
+              {'authorization': 'gsl6npul7de4cek3qqtdpduq7oiua7c4'}).build());
+
+      log('321');
+      
+      socket.onConnect((_) {
+        log('connect');
+        socket.emit('msg', 'test');
       });
-
-      socket.connect();
-
-      socket.on('data', (data) {
+      socket.onDisconnect((_) => log('disconnect'));
+      socket.on('THLevelUpdate', (data) {
+        log(data.toString());
+      });
+      socket.on('WLevelUpdate', (data) {
+        log(data.toString());
+      });
+      socket.on('Data', (data) {
+        log(data.toString());
         humidityAir = [
-          data.airHumidities[0].value,
-          data.airHumidities[1].value,
+          data['airHumidities'][0]['value'],
+          data['airHumidities'][1]['value'],
         ];
+        setState(() {});
         temperature = [
-          data.temperatures[0].value,
-          data.temperatures[1].value,
+          data['temperatures'][0]['value'],
+          data['temperatures'][1]['value'],
         ];
+        setState(() {});
+        waterLevel = [data['waterLevel'], true];
+        setState(() {});
         humiditySoil = [
-          data.groundHumidities[0].value,
-          data.groundHumidities[1].value,
+          data['groundHumidities'][0]['value'],
+          data['groundHumidities'][1]['value'],
         ];
-        waterLevel = [
-          !data.waterLevel[0].isLow,
-          '',
+        setState(() {});
+        groundErrors = [
+          !data['sensors'][0]['isWorking'],
+          !data['sensors'][5]['isWorking'],
         ];
+        setState(() {});
         servos = [
-          data.servos[0].value,
-          data.servos[1].value,
+          !data['sensors'][9]['isWorking'],
+          !data['sensors'][9]['isWorking'],
         ];
+        setState(() {});
+        tempErrors = [
+          !data['sensors'][1]['isWorking'],
+          !data['sensors'][3]['isWorking'],
+        ];
+        setState(() {});
+        airErrors = [
+          !data['sensors'][2]['isWorking'],
+          !data['sensors'][4]['isWorking'],
+        ];
+        setState(() {});
         hudSensors = [
-          data.pump.value,
-          data.humidifier.value,
+          data['sensors'][7]['isWorking'],
+          data['sensors'][8]['isWorking'],
         ];
+        
       });
-      socket.on('new_data', (data) {});
+      socket.connect();
     } catch (e) {
       log(e.toString());
     }
   }
 
+  Future<void> getLimits() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    tempLimit = prefs.getInt('tempLimit') ?? 0;
+    humAirLimit = prefs.getInt('humAirLimit') ?? 0;
+    humSoilLimit = prefs.getInt('humSoilLimit') ?? 0;
+  }
+
   @override
   void initState() {
+    getLimits();
     connect();
+    super.initState();
   }
 
   @override
@@ -120,9 +173,24 @@ class _AppState extends State<App> {
                           ),
                         ),
                       ),
-                      onTap: () {
+                      onTap: () async {
                         Navigator.pop(_);
-                        socket.emit('change_settings', [value.toString(),type.toString()]);
+                        final SharedPreferences prefs =
+                            await SharedPreferences.getInstance();
+                        if (type == 'airHum') {
+                          humAirLimit = value;
+
+                          prefs.setInt('humAirLimit', tempLimit);
+                        }
+                        if (type == 'soilHum') {
+                          humSoilLimit = value;
+                          prefs.setInt('humSoilLimit', humSoilLimit);
+                        }
+                        if (type == 'temp') {
+                          tempLimit = value;
+                          prefs.setInt('tempLimit', tempLimit);
+                        }
+                        setState(() {});
                       },
                     ),
                   )
@@ -192,7 +260,7 @@ class _AppState extends State<App> {
                             child: const Padding(
                               padding: EdgeInsets.all(8.0),
                               child: Text(
-                                'Уровень влажности воды',
+                                'Уровень влажности почвы',
                                 style: TextStyle(
                                     color: Colors.white, fontSize: 25),
                                 textAlign: TextAlign.center,
@@ -315,77 +383,99 @@ class _AppState extends State<App> {
               Flexible(
                 flex: 40,
                 child: SingleChildScrollView(
-                  child: Column(
-                    children: [
-                      SensorsCard(
-                        key: widget.key,
-                        name: 'Температура',
-                        avgValue: '${(temperature[0] + temperature[1]) / 2} °C',
-                        values: [
-                          '${temperature[0]} °C',
-                          '${temperature[1]} °C'
-                        ],
-                        errors: const [false, false],
-                      ),
-                      SensorsCard(
-                        key: widget.key,
-                        name: 'Влажность воздуха',
-                        avgValue: '${(humidityAir[0] + humidityAir[1]) / 2}%',
-                        values: ['${humidityAir[0]}%', '${humidityAir[1]}%'],
-                        errors: const [true, false],
-                      ),
-                      SensorsCard(
-                        key: widget.key,
-                        name: 'Влажность почвы',
-                        avgValue: '${(humiditySoil[0] + humiditySoil[1]) / 2}%',
-                        values: ['${humiditySoil[0]}%', '${humiditySoil[1]}%'],
-                        errors: const [false, true],
-                      ),
-                      SensorsCard(
-                        key: widget.key,
-                        name: 'Уровень воды',
-                        avgValue:
-                            waterLevel[0] == false ? 'Ниже нормы' : 'Норма',
-                        values: [
-                          waterLevel[0] == false ? 'Ниже нормы' : 'Норма',
-                          ''
-                        ],
-                        errors: const [false, true],
-                      ),
-                      SensorsCard(
-                          key: widget.key,
-                          name: 'Контроллеры температуры',
-                          avgValue: servos[0] && servos[1]
-                              ? 'Исправны'
-                              : 'Есть проблема',
-                          values: [
-                            servos[0] == true ? 'Исправен' : 'Есть проблема',
-                            servos[1] == true ? 'Исправен' : 'Есть проблема',
+                  child: temperature[0] == 0
+                      ? const CircularProgressIndicator()
+                      : Column(
+                          children: [
+                            SensorsCard(
+                              isRed: (temperature[0] + temperature[1]) / 2 >
+                                  tempLimit,
+                              key: widget.key,
+                              name: 'Температура',
+                              avgValue:
+                                  '${(temperature[0] + temperature[1]) / 2} °C',
+                              values: [
+                                '${temperature[0]} °C',
+                                '${temperature[1]} °C'
+                              ],
+                              errors: airErrors,
+                            ),
+                            SensorsCard(
+                              isRed: (humidityAir[0] + humidityAir[1]) / 2 <
+                                  humAirLimit,
+                              key: widget.key,
+                              name: 'Влажность воздуха',
+                              avgValue:
+                                  '${(humidityAir[0] + humidityAir[1]) / 2}%',
+                              values: [
+                                '${humidityAir[0]}%',
+                                '${humidityAir[1]}%'
+                              ],
+                              errors: airErrors,
+                            ),
+                            SensorsCard(
+                              isRed: (humiditySoil[0] + humiditySoil[1]) / 2 <
+                                  humSoilLimit,
+                              key: widget.key,
+                              name: 'Влажность почвы',
+                              avgValue:
+                                  '${(humiditySoil[0] + humiditySoil[1]) / 2}%',
+                              values: [
+                                '${humiditySoil[0]}%',
+                                '${humiditySoil[1]}%'
+                              ],
+                              errors: groundErrors,
+                            ),
+                            SensorsCard(
+                              isRed: !waterLevel[0],
+                              key: widget.key,
+                              name: 'Уровень воды',
+                              avgValue: waterLevel[0] == false
+                                  ? 'Ниже нормы'
+                                  : 'Норма',
+                              values: [
+                                waterLevel[0] == false ? 'Ниже нормы' : 'Норма',
+                                ''
+                              ],
+                              errors: const [false, true],
+                            ),
+                            SensorsCard(
+                                isRed: tempErrors[0] && tempErrors[1],
+                                key: widget.key,
+                                name: 'Контроллеры температуры',
+                                avgValue: !tempErrors[0] && !tempErrors[1]
+                                    ? 'Исправны'
+                                    : 'Есть проблема',
+                                values: [
+                                  !tempErrors[0] == true
+                                      ? 'Исправен'
+                                      : 'Есть проблема',
+                                  !tempErrors[1] == true
+                                      ? 'Исправен'
+                                      : 'Есть проблема',
+                                ],
+                                errors: tempErrors),
+                            SensorsCard(
+                                isRed: !hudSensors[0] && hudSensors[1],
+                                key: widget.key,
+                                name: 'Контроллеры влажности',
+                                avgValue: hudSensors[0] && hudSensors[1]
+                                    ? 'Исправны'
+                                    : 'Есть проблема',
+                                values: [
+                                  hudSensors[0] == true
+                                      ? 'Помпа исправна'
+                                      : 'Проблема с помпой',
+                                  hudSensors[1] == true
+                                      ? 'Увлажнитель исправен'
+                                      : 'Проблема с увлажнителем',
+                                ],
+                                errors: [
+                                  !hudSensors[0],
+                                  !hudSensors[1]
+                                ])
                           ],
-                          errors: [
-                            !servos[0],
-                            !servos[1]
-                          ]),
-                      SensorsCard(
-                          key: widget.key,
-                          name: 'Контроллеры влажности',
-                          avgValue: hudSensors[0] && hudSensors[1]
-                              ? 'Исправны'
-                              : 'Есть проблема',
-                          values: [
-                            hudSensors[0] == true
-                                ? 'Помпа исправна'
-                                : 'Проблема с помпой',
-                            hudSensors[1] == true
-                                ? 'Увлажнитель исправен'
-                                : 'Проблема с увлажнителем',
-                          ],
-                          errors: [
-                            !hudSensors[0],
-                            !hudSensors[1]
-                          ])
-                    ],
-                  ),
+                        ),
                 ),
               )
             ],

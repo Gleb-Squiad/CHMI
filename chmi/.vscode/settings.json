@@ -5,6 +5,7 @@
         "source.fixAll": true
     },
     
-    "dart.previewFlutterUiGuides": true
+    "dart.previewFlutterUiGuides": true,
+    "cmake.sourceDirectory": "${workspaceFolder}/linux"
 
 }
