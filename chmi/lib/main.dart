@@ -34,7 +34,7 @@ class _AppState extends State<App> {
   late List<bool> waterLevel = [true, true];
   Timer scheduleTimeout([int milliseconds = 10000]) =>
       Timer(Duration(milliseconds: milliseconds), handleTimeout);
-
+//Соединение с сервером
   void handleTimeout() {
     connect();
   }
@@ -42,9 +42,9 @@ class _AppState extends State<App> {
   void connect() {
     try {
       socket = io(
-          'http://1122853-ithink.tw1.ru:4000?type=User',
+          'Ссылка на сервер',
           OptionBuilder().setTransports(['websocket']).setExtraHeaders(
-              {'authorization': 'gsl6npul7de4cek3qqtdpduq7oiua7c4'}).build());
+              {'authorization': 'Token'}).build());
 
       log('321');
       
@@ -109,7 +109,8 @@ class _AppState extends State<App> {
       log(e.toString());
     }
   }
-
+//Конец соединения с севрером
+//ДОставание инфы из кеша
   Future<void> getLimits() async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     tempLimit = prefs.getInt('tempLimit') ?? 0;
